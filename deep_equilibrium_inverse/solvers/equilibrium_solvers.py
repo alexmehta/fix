@@ -4,7 +4,7 @@ import matplotlib
 # matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 
-from solvers.cg_utils import conjugate_gradient
+from deep_equilibrium_inverse.solvers.cg_utils import conjugate_gradient
 
 class EquilibriumGrad(nn.Module):
     def __init__(self, linear_operator, nonlinear_operator, eta, minval = -1, maxval = 1):

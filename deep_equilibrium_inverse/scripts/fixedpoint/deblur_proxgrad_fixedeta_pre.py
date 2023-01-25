@@ -1,22 +1,19 @@
 import torch
 import os
 import random
-import sys
 import argparse
-sys.path.append('/home-nfs/gilton/learned_iterative_solvers')
-# sys.path.append('/Users/dgilton/PycharmProjects/learned_iterative_solvers')
 
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms
 
-import operators.blurs as blurs
-from operators.operator import OperatorPlusNoise
-from utils.celeba_dataloader import CelebaTrainingDatasetSubset, CelebaTestDataset
-from networks.normalized_equilibrium_u_net import UnetModel, DnCNN
-from solvers.equilibrium_solvers import EquilibriumProxGrad
-from training import refactor_equilibrium_training
-from solvers import new_equilibrium_utils as eq_utils
+import deep_equilibrium_inverse.operators.blurs as blurs
+from deep_equilibrium_inverse.operators.operator import OperatorPlusNoise
+from deep_equilibrium_inverse.utils.celeba_dataloader import CelebaTrainingDatasetSubset, CelebaTestDataset
+from deep_equilibrium_inverse.networks.normalized_equilibrium_u_net import UnetModel, DnCNN
+from deep_equilibrium_inverse.solvers.equilibrium_solvers import EquilibriumProxGrad
+from deep_equilibrium_inverse.training import refactor_equilibrium_training
+from deep_equilibrium_inverse.solvers import new_equilibrium_utils as eq_utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_epochs', default=80)

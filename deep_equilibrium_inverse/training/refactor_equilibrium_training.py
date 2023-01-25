@@ -1,8 +1,9 @@
 import torch
 import numpy as np
-from solvers import new_equilibrium_utils as eq_utils
 from torch import autograd
-from utils import cg_utils
+
+from deep_equilibrium_inverse.solvers import new_equilibrium_utils as eq_utils
+from deep_equilibrium_inverse.utils import cg_utils
 
 def train_solver(single_iterate_solver, train_dataloader, test_dataloader,
                  measurement_process, optimizer,
