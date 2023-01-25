@@ -25,6 +25,7 @@ parser.add_argument('--lr', type=float, default=0.1)
 parser.add_argument('--etainit', type=float, default=0.9)
 parser.add_argument('--lr_gamma', type=float, default=0.1)
 parser.add_argument('--sched_step', type=int, default=10)
+parser.add_argument('--data_path', default="/share/data/vision-greg2/mixpatch/img_align_celeba/")
 parser.add_argument('--savepath',
                     default="/share/data/vision-greg2/users/gilton/celeba_equilibriumgrad_blur_save_inf.ckpt")
 args = parser.parse_args()
@@ -46,16 +47,15 @@ initial_eta = 0.2
 
 initial_data_points = 10000
 # point this towards your celeba files
-data_location = "/share/data/vision-greg2/mixpatch/img_align_celeba/"
+data_location = args.data_path
 
 kernel_size = 5
 kernel_sigma = 5.0
 noise_sigma = 1e-2
 
 # modify this for your machine
-# save_location = "/share/data/vision-greg2/users/gilton/mnist_equilibriumgrad_blur.ckpt"
 save_location = args.savepath
-load_location = "/share/data/willett-group/users/gilton/denoisers/celeba_denoiser_normunet_3.ckpt"
+load_location = args.savepath
 
 gpu_ids = []
 for ii in range(6):
