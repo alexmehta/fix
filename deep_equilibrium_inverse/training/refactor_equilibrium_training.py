@@ -177,6 +177,7 @@ def train_solver_precond1(single_iterate_solver, train_dataloader,
             loss = loss_function(reconstruction, sample_batch)
             if np.isnan(loss.item()):
                 reset_flag = True
+                print("Loss is nan")
                 break
             loss.backward()
             optimizer.step()
