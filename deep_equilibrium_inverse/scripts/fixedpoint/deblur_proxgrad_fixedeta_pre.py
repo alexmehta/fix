@@ -25,6 +25,7 @@ parser.add_argument('--lr', type=float, default=0.1)
 parser.add_argument('--etainit', type=float, default=0.9)
 parser.add_argument('--lr_gamma', type=float, default=0.1)
 parser.add_argument('--sched_step', type=int, default=10)
+parser.add_argument('--debug', action='store_true')
 parser.add_argument('--data_path', default="/share/data/vision-greg2/mixpatch/img_align_celeba/")
 parser.add_argument('--savepath',
                     default="/share/data/vision-greg2/users/gilton/celeba_equilibriumgrad_blur_save_inf.ckpt")
@@ -86,8 +87,12 @@ transform = transforms.Compose(
 )
 celeba_train_size = 162770
 total_data = initial_data_points
-total_indices = random.sample(range(celeba_train_size), k=total_data)
-initial_indices = total_indices
+if args.debug:
+    # take only a few data points for debugging
+    total_indices = random.sample(range(celeba_train_size), k=batch_size)
+else:
+    total_indices = random.sample(range(celeba_train_size), k=total_data)
+    initial_indices = total_indices
 
 dataset = CelebaTrainingDatasetSubset(data_location, subset_indices=initial_indices, transform=transform)
 dataloader = torch.utils.data.DataLoader(
@@ -98,6 +103,7 @@ test_dataset = CelebaTestDataset(data_location, transform=transform)
 test_dataloader = torch.utils.data.DataLoader(
     dataset=test_dataset, batch_size=batch_size, shuffle=False, drop_last=True,
 )
+
 
 ### Set up solver and problem setting
 
