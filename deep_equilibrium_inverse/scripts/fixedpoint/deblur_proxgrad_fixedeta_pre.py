@@ -110,7 +110,7 @@ test_dataset = CelebaTestDataset(data_location, transform=transform)
 test_dataloader = torch.utils.data.DataLoader(
     dataset=test_dataset, batch_size=batch_size, shuffle=False, drop_last=True,
 )
-
+print("loadded data")
 
 ### Set up solver and problem setting
 
