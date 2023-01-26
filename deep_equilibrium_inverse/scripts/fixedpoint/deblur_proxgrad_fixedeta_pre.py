@@ -67,7 +67,7 @@ for ii in range(6):
             gpu_ids = [ii]
         else:
             gpu_ids.append(ii)
-    except AssertionError:
+    except (AssertionError, RuntimeError):
         print('Not ' + str(ii) + "!", flush=True)
 
 print(os.getenv('CUDA_VISIBLE_DEVICES'), flush=True)
@@ -90,6 +90,13 @@ total_data = initial_data_points
 if args.debug:
     # take only a few data points for debugging
     total_indices = random.sample(range(celeba_train_size), k=batch_size)
+    initial_indices = total_indices
+    try:
+        import lovely_tensors as lt
+    except ImportError:
+        pass
+    else:
+        lt.monkey_patch()
 else:
     total_indices = random.sample(range(celeba_train_size), k=total_data)
     initial_indices = total_indices
