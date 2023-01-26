@@ -171,6 +171,7 @@ deep_eq_module = eq_utils.DEQFixedPoint(solver, forward_iterator, m=anderson_m, 
 # deep_eq_module = eq_utils.DEQFixedPoint(solver, forward_iterator, max_iter=100, tol=1e-8)
 
 # Do train
+print("starting training")
 refactor_equilibrium_training.train_solver_precond1(
                                single_iterate_solver=solver, train_dataloader=dataloader, test_dataloader=test_dataloader,
                                measurement_process=measurement_process, optimizer=optimizer, save_location=save_location,
