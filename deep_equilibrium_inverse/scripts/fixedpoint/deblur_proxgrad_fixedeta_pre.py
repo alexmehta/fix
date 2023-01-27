@@ -27,6 +27,8 @@ parser.add_argument('--lr_gamma', type=float, default=0.1)
 parser.add_argument('--sched_step', type=int, default=10)
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('--data_path', default="/share/data/vision-greg2/mixpatch/img_align_celeba/")
+parser.add_argument('--loadpath',
+                    default="/share/data/vision-greg2/users/gilton/celeba_equilibriumgrad_blur_save_inf.ckpt")
 parser.add_argument('--savepath',
                     default="/share/data/vision-greg2/users/gilton/celeba_equilibriumgrad_blur_save_inf.ckpt")
 args = parser.parse_args()
@@ -56,7 +58,7 @@ noise_sigma = 1e-2
 
 # modify this for your machine
 save_location = args.savepath
-load_location = args.savepath
+load_location = args.loadpath
 
 gpu_ids = []
 for ii in range(6):
@@ -89,7 +91,7 @@ celeba_train_size = 162770
 total_data = initial_data_points
 if args.debug:
     # take only a few data points for debugging
-    total_indices = random.sample(range(celeba_train_size), k=batch_size)
+    total_indices = random.sample(range(celeba_train_size), k=3*batch_size)
     initial_indices = total_indices
     try:
         import lovely_tensors as lt
@@ -122,9 +124,9 @@ internal_forward_operator = blurs.GaussianBlur(sigma=kernel_sigma, kernel_size=k
                                       n_channels=3, n_spatial_dimensions=2).to(device=device)
 
 # standard u-net
-# learned_component = UnetModel(in_chans=n_channels, out_chans=n_channels, num_pool_layers=4,
-#                                        drop_prob=0.0, chans=32)
-learned_component = DnCNN(channels=n_channels)
+learned_component = UnetModel(in_chans=n_channels, out_chans=n_channels, num_pool_layers=4,
+                                       drop_prob=0.0, chans=32)
+# learned_component = DnCNN(channels=n_channels)
 
 if os.path.exists(load_location):
     if torch.cuda.is_available():
