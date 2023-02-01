@@ -159,7 +159,11 @@ if os.path.exists(save_location):
         saved_dict = torch.load(save_location, map_location='cpu')
 
     start_epoch = saved_dict['epoch']
-    solver.load_state_dict(saved_dict['solver_state_dict'])
+    try:
+        solver.load_state_dict(saved_dict['solver_state_dict'])
+    except RuntimeError:
+        # we are using data parallel and the saved model is not
+        solver.module.load_state_dict(saved_dict['solver_state_dict'])
     optimizer.load_state_dict(saved_dict['optimizer_state_dict'])
     scheduler.load_state_dict(saved_dict['scheduler_state_dict'])
 
