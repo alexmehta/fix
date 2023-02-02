@@ -56,7 +56,6 @@ noise_sigma = 1e-2
 
 # modify this for your machine
 save_location = args.savepath
-load_location = args.loadpath
 
 gpu_ids = []
 for ii in range(6):
