@@ -25,10 +25,6 @@ parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--and_maxiters', default=100)
 parser.add_argument('--and_beta', type=float, default=1.0)
 parser.add_argument('--and_m', type=int, default=5)
-parser.add_argument('--lr', type=float, default=0.1)
-parser.add_argument('--etainit', type=float, default=0.9)
-parser.add_argument('--lr_gamma', type=float, default=0.1)
-parser.add_argument('--sched_step', type=int, default=10)
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('--data_path', default="/share/data/vision-greg2/mixpatch/img_align_celeba/")
 parser.add_argument('--savepath',
@@ -46,7 +42,6 @@ max_iters = int(args.and_maxiters)
 anderson_m = int(args.and_m)
 anderson_beta = float(args.and_beta)
 
-learning_rate = float(args.lr)
 print_every_n_steps = 2
 save_every_n_epochs = 1
 initial_eta = 0.2
