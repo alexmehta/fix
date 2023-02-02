@@ -13,7 +13,7 @@ from torchvision import transforms
 
 import deep_equilibrium_inverse.operators.blurs as blurs
 from deep_equilibrium_inverse.operators.operator import OperatorPlusNoise
-from deep_equilibrium_inverse.utils.celeba_dataloader import CelebaTrainingDatasetSubset, CelebaTestDataset
+from deep_equilibrium_inverse.utils.celeba_dataloader import CelebaTestDataset
 from deep_equilibrium_inverse.networks.normalized_equilibrium_u_net import UnetModel
 from deep_equilibrium_inverse.solvers.equilibrium_solvers import EquilibriumProxGrad
 from deep_equilibrium_inverse.solvers import new_equilibrium_utils as eq_utils
@@ -25,7 +25,6 @@ parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--and_maxiters', default=100)
 parser.add_argument('--and_beta', type=float, default=1.0)
 parser.add_argument('--and_m', type=int, default=5)
-parser.add_argument('--debug', action='store_true')
 parser.add_argument('--data_path', default="/share/data/vision-greg2/mixpatch/img_align_celeba/")
 parser.add_argument('--savepath',
                     default="/share/data/vision-greg2/users/gilton/celeba_equilibriumgrad_blur_save_inf.ckpt")
@@ -83,26 +82,6 @@ transform = transforms.Compose(
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ]
-)
-celeba_train_size = 162770
-total_data = initial_data_points
-if args.debug:
-    # take only a few data points for debugging
-    total_indices = random.sample(range(celeba_train_size), k=3*batch_size)
-    initial_indices = total_indices
-    try:
-        import lovely_tensors as lt
-    except ImportError:
-        pass
-    else:
-        lt.monkey_patch()
-else:
-    total_indices = random.sample(range(celeba_train_size), k=total_data)
-    initial_indices = total_indices
-
-dataset = CelebaTrainingDatasetSubset(data_location, subset_indices=initial_indices, transform=transform)
-dataloader = torch.utils.data.DataLoader(
-    dataset=dataset, batch_size=batch_size, shuffle=True, drop_last=True,
 )
 
 test_dataset = CelebaTestDataset(data_location, transform=transform)
