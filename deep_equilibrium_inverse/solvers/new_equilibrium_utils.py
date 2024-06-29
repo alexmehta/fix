@@ -373,3 +373,25 @@ def get_equilibrium_point_plot(solver, z, truth, max_iterations=50, tolerance = 
     # plt.show()
 
     return running_iterate, running_iterate
+
+class DEQFixedPointNewGrad(nn.Module):
+
+    def __init__(self, f, solver, **kwargs):
+        super().__init__()
+        self.f = f
+        self.solver = solver
+        self.kwargs = kwargs
+
+    def forward(self, x, initial_point=None):
+        if initial_point is None:
+            init_point = torch.zeros_like(x).to(x.device)
+        else:
+            init_point = initial_point
+        # compute forward pass and re-engage autograd tape
+        with torch.no_grad():
+            p, self.forward_res = self.solver(
+                lambda z: self.f(z, x), init_point, **self.kwargs)
+        # z = self.f(z, x)
+        z_bar = p.clone().detach().requires_grad_()
+        z = self.f(z_bar, x)
+        return z

@@ -17,7 +17,7 @@ from deep_equilibrium_inverse.solvers import new_equilibrium_utils as eq_utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_epochs', default=80)
-parser.add_argument('--batch_size', type=int, default=16)
+parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--and_maxiters', default=100)
 parser.add_argument('--and_beta', type=float, default=1.0)
 parser.add_argument('--and_m', type=int, default=5)
@@ -26,11 +26,11 @@ parser.add_argument('--etainit', type=float, default=0.9)
 parser.add_argument('--lr_gamma', type=float, default=0.1)
 parser.add_argument('--sched_step', type=int, default=10)
 parser.add_argument('--debug', action='store_true')
-parser.add_argument('--data_path', default="/share/data/vision-greg2/mixpatch/img_align_celeba/")
+parser.add_argument('--data_path', default="/mnt/SSD 2/dataset/img_align_celeba/")
 parser.add_argument('--loadpath',
-                    default="/share/data/vision-greg2/users/gilton/celeba_equilibriumgrad_blur_save_inf.ckpt")
+                    default="/mnt/SSD 2/modelzoo/blur_save_inf.ckpt")
 parser.add_argument('--savepath',
-                    default="/share/data/vision-greg2/users/gilton/celeba_equilibriumgrad_blur_save_inf.ckpt")
+                    default="/mnt/SSD 2/modelzoo/blur_save_inf.ckpt")
 args = parser.parse_args()
 
 
@@ -112,8 +112,6 @@ test_dataset = CelebaTestDataset(data_location, transform=transform)
 test_dataloader = torch.utils.data.DataLoader(
     dataset=test_dataset, batch_size=batch_size, shuffle=False, drop_last=True,
 )
-print("loadded data")
-
 ### Set up solver and problem setting
 
 forward_operator = blurs.GaussianBlur(sigma=kernel_sigma, kernel_size=kernel_size,
@@ -124,10 +122,10 @@ internal_forward_operator = blurs.GaussianBlur(sigma=kernel_sigma, kernel_size=k
                                       n_channels=3, n_spatial_dimensions=2).to(device=device)
 
 # standard u-net
-learned_component = UnetModel(in_chans=n_channels, out_chans=n_channels, num_pool_layers=4,
-                                       drop_prob=0.0, chans=32)
-# learned_component = DnCNN(channels=n_channels)
-
+# learned_component = UnetModel(in_chans=n_channels, out_chans=n_channels, num_pool_layers=4,
+                                    #    drop_prob=0.0, chans=32)
+learned_component = DnCNN(channels=n_channels)
+print(load_location)
 if os.path.exists(load_location):
     # load location is only used for pretrained learned components
     if torch.cuda.is_available():
@@ -169,10 +167,10 @@ if os.path.exists(save_location):
 
 
 # set up loss and train
-lossfunction = torch.nn.MSELoss(reduction='sum')
+lossfunction = torch.nn.MSELoss()
 
 forward_iterator = eq_utils.andersonexp
-deep_eq_module = eq_utils.DEQFixedPoint(solver, forward_iterator, m=anderson_m, beta=anderson_beta, lam=1e-2,
+deep_eq_module = eq_utils.DEQFixedPointNewGrad(solver, forward_iterator, m=anderson_m, beta=anderson_beta, lam=1e-2,
                                         max_iter=max_iters, tol=1e-5)
 # forward_iterator = eq_utils.forward_iteration
 # deep_eq_module = eq_utils.DEQFixedPoint(solver, forward_iterator, max_iter=100, tol=1e-8)

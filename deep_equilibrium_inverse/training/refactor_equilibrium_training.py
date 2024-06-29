@@ -187,7 +187,7 @@ def train_solver_precond1(single_iterate_solver, train_dataloader,
 
             if ii % print_every_n_steps == 0:
                 logging_string = "Epoch: " + str(epoch) + " Step: " + str(ii) + \
-                                 " Loss: " + str(loss.cpu().detach().numpy())
+                                 " Loss: " + str(loss.cpu().detach().numpy())  + " PSNR TRAIN: " + str(-10*np.log10(loss.cpu().detach().numpy()))
                 print(logging_string)
 
             if ii % 200 == 0:

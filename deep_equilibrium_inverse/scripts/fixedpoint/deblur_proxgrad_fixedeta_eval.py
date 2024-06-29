@@ -10,11 +10,12 @@ import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms
+from tqdm.contrib import tenumerate
 
 import deep_equilibrium_inverse.operators.blurs as blurs
 from deep_equilibrium_inverse.operators.operator import OperatorPlusNoise
 from deep_equilibrium_inverse.utils.celeba_dataloader import CelebaTestDataset
-from deep_equilibrium_inverse.networks.normalized_equilibrium_u_net import UnetModel
+from deep_equilibrium_inverse.networks.normalized_equilibrium_u_net import UnetModel, DnCNN
 from deep_equilibrium_inverse.solvers.equilibrium_solvers import EquilibriumProxGrad
 from deep_equilibrium_inverse.solvers import new_equilibrium_utils as eq_utils
 from deep_equilibrium_inverse.utils import cg_utils
@@ -25,9 +26,9 @@ parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--and_maxiters', default=100)
 parser.add_argument('--and_beta', type=float, default=1.0)
 parser.add_argument('--and_m', type=int, default=5)
-parser.add_argument('--data_path', default="/share/data/vision-greg2/mixpatch/img_align_celeba/")
+parser.add_argument('--data_path', default="/mnt/SSD 2/dataset/img_align_celeba/")
 parser.add_argument('--savepath',
-                    default="/share/data/vision-greg2/users/gilton/celeba_equilibriumgrad_blur_save_inf.ckpt")
+                    default="/mnt/SSD 2/modelzoo/blur_save_inf.ckpt")
 parser.add_argument('--results_file', default="results.csv")
 args = parser.parse_args()
 
@@ -100,8 +101,9 @@ internal_forward_operator = blurs.GaussianBlur(sigma=kernel_sigma, kernel_size=k
                                       n_channels=3, n_spatial_dimensions=2).to(device=device)
 
 # standard u-net
-learned_component = UnetModel(in_chans=n_channels, out_chans=n_channels, num_pool_layers=4,
-                                       drop_prob=0.0, chans=32)
+# learned_component = UnetModel(in_chans=n_channels, out_chans=n_channels, num_pool_layers=4,
+                                    #    drop_prob=0.0, chans=32)
+learned_component = DnCNN(n_channels=n_channels)
 
 solver = EquilibriumProxGrad(linear_operator=internal_forward_operator, nonlinear_operator=learned_component,
                     eta=initial_eta, minval=-1, maxval = 1)
@@ -128,7 +130,7 @@ if os.path.exists(save_location):
 
 
 # set up loss and train
-lossfunction = torch.nn.MSELoss(reduction='sum')
+lossfunction = torch.nn.MSELoss()
 
 forward_iterator = eq_utils.andersonexp
 deep_eq_module = eq_utils.DEQFixedPoint(solver, forward_iterator, m=anderson_m, beta=anderson_beta, lam=1e-2,
@@ -149,7 +151,7 @@ if os.path.exists(results_file):
     results_df = pd.read_csv(results_file)
 else:
     results_df = pd.DataFrame(columns=['max_iters', 'loss', 'initial_loss'])
-for ii, sample_batch in enumerate(test_dataloader):
+for ii, sample_batch in tenumerate(test_dataloader):
     sample_batch = sample_batch.to(device=device)
     y = measurement_process(sample_batch)
     if forward_operator is not None:
@@ -168,5 +170,5 @@ mean_loss = np.mean(losses)
 mean_initial_loss = np.mean(initial_losses)
 print("mean loss: " + str(mean_loss))
 print("mean initial loss: " + str(mean_initial_loss))
-results_df = results_df.append({'max_iters': max_iters, 'loss': mean_loss, 'initial_loss': mean_initial_loss}, ignore_index=True)
+results_df = results_df.append({'max_iters': max_iters, 'loss': mean_loss, 'initial_loss': mean_initial_loss, 'psnr': -10*np.log10(mean_initial_loss)}, ignore_index=True)
 results_df.to_csv(results_file, index=False)
