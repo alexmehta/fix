@@ -8,7 +8,7 @@
 # note do -l buyin
 #$ -j y
 #$ -pe omp 4
-#$ -l gpus=4
+#$ -l gpus=2
 #$ -l gpu_c=7.0
 module load python3/3.10.12
 module load torch/2.1
