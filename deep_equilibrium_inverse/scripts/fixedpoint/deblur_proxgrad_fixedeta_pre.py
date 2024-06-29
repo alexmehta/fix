@@ -1,26 +1,23 @@
 import torch
 import os
 import random
-import sys
 import argparse
-sys.path.append('/home-nfs/gilton/learned_iterative_solvers')
-# sys.path.append('/Users/dgilton/PycharmProjects/learned_iterative_solvers')
 
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms
 
-import operators.blurs as blurs
-from operators.operator import OperatorPlusNoise
-from utils.celeba_dataloader import CelebaTrainingDatasetSubset, CelebaTestDataset
-from networks.normalized_equilibrium_u_net import UnetModel, DnCNN
-from solvers.equilibrium_solvers import EquilibriumProxGrad
-from training import refactor_equilibrium_training
-from solvers import new_equilibrium_utils as eq_utils
+import deep_equilibrium_inverse.operators.blurs as blurs
+from deep_equilibrium_inverse.operators.operator import OperatorPlusNoise
+from deep_equilibrium_inverse.utils.celeba_dataloader import CelebaTrainingDatasetSubset, CelebaTestDataset
+from deep_equilibrium_inverse.networks.normalized_equilibrium_u_net import UnetModel, DnCNN
+from deep_equilibrium_inverse.solvers.equilibrium_solvers import EquilibriumProxGrad
+from deep_equilibrium_inverse.training import refactor_equilibrium_training
+from deep_equilibrium_inverse.solvers import new_equilibrium_utils as eq_utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_epochs', default=80)
-parser.add_argument('--batch_size', type=int, default=16)
+parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--and_maxiters', default=100)
 parser.add_argument('--and_beta', type=float, default=1.0)
 parser.add_argument('--and_m', type=int, default=5)
@@ -28,8 +25,12 @@ parser.add_argument('--lr', type=float, default=0.1)
 parser.add_argument('--etainit', type=float, default=0.9)
 parser.add_argument('--lr_gamma', type=float, default=0.1)
 parser.add_argument('--sched_step', type=int, default=10)
+parser.add_argument('--debug', action='store_true')
+parser.add_argument('--data_path', default="/mnt/SSD 2/dataset/img_align_celeba/")
+parser.add_argument('--loadpath',
+                    default="/mnt/SSD 2/modelzoo/blur_save_inf.ckpt")
 parser.add_argument('--savepath',
-                    default="/share/data/vision-greg2/users/gilton/celeba_equilibriumgrad_blur_save_inf.ckpt")
+                    default="/mnt/SSD 2/modelzoo/blur_save_inf.ckpt")
 args = parser.parse_args()
 
 
@@ -49,16 +50,15 @@ initial_eta = 0.2
 
 initial_data_points = 10000
 # point this towards your celeba files
-data_location = "/share/data/vision-greg2/mixpatch/img_align_celeba/"
+data_location = args.data_path
 
 kernel_size = 5
 kernel_sigma = 5.0
 noise_sigma = 1e-2
 
 # modify this for your machine
-# save_location = "/share/data/vision-greg2/users/gilton/mnist_equilibriumgrad_blur.ckpt"
 save_location = args.savepath
-load_location = "/share/data/willett-group/users/gilton/denoisers/celeba_denoiser_normunet_3.ckpt"
+load_location = args.loadpath
 
 gpu_ids = []
 for ii in range(6):
@@ -69,7 +69,7 @@ for ii in range(6):
             gpu_ids = [ii]
         else:
             gpu_ids.append(ii)
-    except AssertionError:
+    except (AssertionError, RuntimeError):
         print('Not ' + str(ii) + "!", flush=True)
 
 print(os.getenv('CUDA_VISIBLE_DEVICES'), flush=True)
@@ -89,8 +89,19 @@ transform = transforms.Compose(
 )
 celeba_train_size = 162770
 total_data = initial_data_points
-total_indices = random.sample(range(celeba_train_size), k=total_data)
-initial_indices = total_indices
+if args.debug:
+    # take only a few data points for debugging
+    total_indices = random.sample(range(celeba_train_size), k=3*batch_size)
+    initial_indices = total_indices
+    try:
+        import lovely_tensors as lt
+    except ImportError:
+        pass
+    else:
+        lt.monkey_patch()
+else:
+    total_indices = random.sample(range(celeba_train_size), k=total_data)
+    initial_indices = total_indices
 
 dataset = CelebaTrainingDatasetSubset(data_location, subset_indices=initial_indices, transform=transform)
 dataloader = torch.utils.data.DataLoader(
@@ -101,7 +112,6 @@ test_dataset = CelebaTestDataset(data_location, transform=transform)
 test_dataloader = torch.utils.data.DataLoader(
     dataset=test_dataset, batch_size=batch_size, shuffle=False, drop_last=True,
 )
-
 ### Set up solver and problem setting
 
 forward_operator = blurs.GaussianBlur(sigma=kernel_sigma, kernel_size=kernel_size,
@@ -113,10 +123,11 @@ internal_forward_operator = blurs.GaussianBlur(sigma=kernel_sigma, kernel_size=k
 
 # standard u-net
 # learned_component = UnetModel(in_chans=n_channels, out_chans=n_channels, num_pool_layers=4,
-#                                        drop_prob=0.0, chans=32)
+                                    #    drop_prob=0.0, chans=32)
 learned_component = DnCNN(channels=n_channels)
-
+print(load_location)
 if os.path.exists(load_location):
+    # load location is only used for pretrained learned components
     if torch.cuda.is_available():
         saved_dict = torch.load(load_location)
     else:
@@ -146,21 +157,26 @@ if os.path.exists(save_location):
         saved_dict = torch.load(save_location, map_location='cpu')
 
     start_epoch = saved_dict['epoch']
-    solver.load_state_dict(saved_dict['solver_state_dict'])
-    # optimizer.load_state_dict(saved_dict['optimizer_state_dict'])
+    try:
+        solver.load_state_dict(saved_dict['solver_state_dict'])
+    except RuntimeError:
+        # we are using data parallel and the saved model is not
+        solver.module.load_state_dict(saved_dict['solver_state_dict'])
+    optimizer.load_state_dict(saved_dict['optimizer_state_dict'])
     scheduler.load_state_dict(saved_dict['scheduler_state_dict'])
 
 
 # set up loss and train
-lossfunction = torch.nn.MSELoss(reduction='sum')
+lossfunction = torch.nn.MSELoss()
 
 forward_iterator = eq_utils.andersonexp
-deep_eq_module = eq_utils.DEQFixedPoint(solver, forward_iterator, m=anderson_m, beta=anderson_beta, lam=1e-2,
+deep_eq_module = eq_utils.DEQFixedPointNewGrad(solver, forward_iterator, m=anderson_m, beta=anderson_beta, lam=1e-2,
                                         max_iter=max_iters, tol=1e-5)
 # forward_iterator = eq_utils.forward_iteration
 # deep_eq_module = eq_utils.DEQFixedPoint(solver, forward_iterator, max_iter=100, tol=1e-8)
 
 # Do train
+print("starting training")
 refactor_equilibrium_training.train_solver_precond1(
                                single_iterate_solver=solver, train_dataloader=dataloader, test_dataloader=test_dataloader,
                                measurement_process=measurement_process, optimizer=optimizer, save_location=save_location,

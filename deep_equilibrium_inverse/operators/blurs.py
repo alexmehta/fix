@@ -4,7 +4,7 @@ import math
 import cv2
 import torch
 import torch.nn.functional as torchfunc
-from operators.operator import LinearOperator
+from deep_equilibrium_inverse.operators.operator import LinearOperator
 
 class GaussianBlur(LinearOperator):
     def __init__(self, sigma, kernel_size=5, n_channels=3, n_spatial_dimensions = 2):

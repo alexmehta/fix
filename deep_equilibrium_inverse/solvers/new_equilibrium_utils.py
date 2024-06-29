@@ -171,7 +171,7 @@ def andersonexp(f, x0, m=5, lam=1e-4, max_iter=50, tol=1e-2, beta=1.0):
         G = F[:, :n] - X[:, :n]
         H[:, 1:n + 1, 1:n + 1] = torch.bmm(G, G.transpose(1, 2)) + lam * torch.eye(n, dtype=x0.dtype, device=x0.device)[
             None]
-        alpha = torch.solve(y[:, :n + 1], H[:, :n + 1, :n + 1])[0][:, 1:n + 1, 0]  # (bsz x n)
+        alpha = torch.linalg.solve(H[:, :n + 1, :n + 1], y[:, :n + 1])[:, 1:n + 1, 0]  # (bsz x n)
 
         X[:, k % m] = beta * (alpha[:, None] @ F[:, :n])[:, 0] + (1 - beta) * (alpha[:, None] @ X[:, :n])[:, 0]
         F[:, k % m] = f(X[:, k % m].reshape(x0.shape)).reshape(bsz, -1)
@@ -373,3 +373,25 @@ def get_equilibrium_point_plot(solver, z, truth, max_iterations=50, tolerance = 
     # plt.show()
 
     return running_iterate, running_iterate
+
+class DEQFixedPointNewGrad(nn.Module):
+
+    def __init__(self, f, solver, **kwargs):
+        super().__init__()
+        self.f = f
+        self.solver = solver
+        self.kwargs = kwargs
+
+    def forward(self, x, initial_point=None):
+        if initial_point is None:
+            init_point = torch.zeros_like(x).to(x.device)
+        else:
+            init_point = initial_point
+        # compute forward pass and re-engage autograd tape
+        with torch.no_grad():
+            p, self.forward_res = self.solver(
+                lambda z: self.f(z, x), init_point, **self.kwargs)
+        # z = self.f(z, x)
+        z_bar = p.clone().detach().requires_grad_()
+        z = self.f(z_bar, x)
+        return z

@@ -7,8 +7,8 @@ LICENSE file in the root directory of this source tree.
 import torch
 from torch import nn
 from torch.nn import functional as F
-from utils.spectral_norm import conv_spectral_norm
-import utils.spectral_norm_chen as chen
+from deep_equilibrium_inverse.utils.spectral_norm import conv_spectral_norm
+import deep_equilibrium_inverse.utils.spectral_norm_chen as chen
 
 
 class ConvBlock(nn.Module):

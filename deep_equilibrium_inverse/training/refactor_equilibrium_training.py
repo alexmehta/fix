@@ -1,8 +1,9 @@
 import torch
 import numpy as np
-from solvers import new_equilibrium_utils as eq_utils
 from torch import autograd
-from utils import cg_utils
+
+from deep_equilibrium_inverse.solvers import new_equilibrium_utils as eq_utils
+from deep_equilibrium_inverse.utils import cg_utils
 
 def train_solver(single_iterate_solver, train_dataloader, test_dataloader,
                  measurement_process, optimizer,
@@ -176,6 +177,7 @@ def train_solver_precond1(single_iterate_solver, train_dataloader,
             loss = loss_function(reconstruction, sample_batch)
             if np.isnan(loss.item()):
                 reset_flag = True
+                print("Loss is nan")
                 break
             loss.backward()
             optimizer.step()
@@ -185,8 +187,8 @@ def train_solver_precond1(single_iterate_solver, train_dataloader,
 
             if ii % print_every_n_steps == 0:
                 logging_string = "Epoch: " + str(epoch) + " Step: " + str(ii) + \
-                                 " Loss: " + str(loss.cpu().detach().numpy())
-                print(logging_string, flush=True)
+                                 " Loss: " + str(loss.cpu().detach().numpy())  + " PSNR TRAIN: " + str(-10*np.log10(loss.cpu().detach().numpy()))
+                print(logging_string)
 
             if ii % 200 == 0:
                 if use_dataparallel:

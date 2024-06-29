@@ -1,21 +1,17 @@
 import torch
 import os
 import random
-import sys
 import argparse
-sys.path.append('/home-nfs/gilton/learned_iterative_solvers')
-# sys.path.append('/Users/dgilton/PycharmProjects/learned_iterative_solvers')
 
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms
 
-import operators.operator as lin_operator
-from operators.operator import OperatorPlusNoise
-from utils.celeba_dataloader import CelebaTrainingDatasetSubset, CelebaTestDataset
-from networks.equilibrium_u_net import UnetModel
-from training import denoiser_training
-from solvers import new_equilibrium_utils as eq_utils
+import deep_equilibrium_inverse.operators.operator as lin_operator
+from deep_equilibrium_inverse.operators.operator import OperatorPlusNoise
+from deep_equilibrium_inverse.utils.celeba_dataloader import CelebaTrainingDatasetSubset, CelebaTestDataset
+from deep_equilibrium_inverse.networks.equilibrium_u_net import UnetModel
+from deep_equilibrium_inverse.training import denoiser_training
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_epochs', default=80)
@@ -24,6 +20,8 @@ parser.add_argument('--lr', type=float, default=0.1)
 parser.add_argument('--lr_gamma', type=float, default=0.1)
 parser.add_argument('--sched_step', type=int, default=10)
 parser.add_argument('--noise_sigma', type=float, default=0.01)
+parser.add_argument('--debug', action='store_true')
+parser.add_argument('--data_path', default="/share/data/vision-greg2/mixpatch/img_align_celeba/")
 parser.add_argument('--savepath',
                     default="/share/data/vision-greg2/users/gilton/celeba_equilibriumgrad_blur_save_inf.ckpt")
 args = parser.parse_args()
@@ -41,7 +39,7 @@ save_every_n_epochs = 5
 
 initial_data_points = 10000
 # point this towards your celeba files
-data_location = "/share/data/vision-greg2/mixpatch/img_align_celeba/"
+data_location = args.data_path
 
 noise_sigma = float(args.noise_sigma)
 
@@ -79,8 +77,19 @@ transform = transforms.Compose(
 )
 celeba_train_size = 162770
 total_data = initial_data_points
-total_indices = random.sample(range(celeba_train_size), k=total_data)
-initial_indices = total_indices
+if args.debug:
+    # take only a few data points for debugging
+    total_indices = random.sample(range(celeba_train_size), k=3*batch_size)
+    initial_indices = total_indices
+    try:
+        import lovely_tensors as lt
+    except ImportError:
+        pass
+    else:
+        lt.monkey_patch()
+else:
+    total_indices = random.sample(range(celeba_train_size), k=total_data)
+    initial_indices = total_indices
 
 dataset = CelebaTrainingDatasetSubset(data_location, subset_indices=initial_indices, transform=transform)
 dataloader = torch.utils.data.DataLoader(
