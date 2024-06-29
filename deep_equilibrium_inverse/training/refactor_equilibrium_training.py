@@ -4,7 +4,8 @@ from torch import autograd
 
 from deep_equilibrium_inverse.solvers import new_equilibrium_utils as eq_utils
 from deep_equilibrium_inverse.utils import cg_utils
-
+from tqdm import trange
+from tqdm.contrib import tenumerate
 def train_solver(single_iterate_solver, train_dataloader, test_dataloader,
                  measurement_process, optimizer,
                  save_location, loss_function, n_epochs, deep_eq_module,
@@ -153,7 +154,7 @@ def train_solver_precond1(single_iterate_solver, train_dataloader,
     previous_loss = 10.0
     reset_flag = False
 
-    for epoch in range(start_epoch, n_epochs):
+    for epoch in trange(start_epoch, n_epochs):
 
         if reset_flag:
             save_state_dict = torch.load(save_location)
@@ -161,7 +162,7 @@ def train_solver_precond1(single_iterate_solver, train_dataloader,
             optimizer.load_state_dict(save_state_dict['optimizer_state_dict'])
         reset_flag = False
 
-        for ii, sample_batch in enumerate(train_dataloader):
+        for ii, sample_batch in tenumerate(train_dataloader):
             optimizer.zero_grad()
 
             sample_batch = sample_batch.to(device=device)
